@@ -182,13 +182,35 @@ void displayLeaderboard() {
         printf("\nNo scores found yet. Play a game first!\n");
         return;
     }
-    struct Player p;
-    printf("\n--- LEADERBOARD ---\n");
-    printf("%-20s %-10s\n", "Player", "Score");
-    while (fscanf(file, "%s %d", p.name, &p.score) != EOF) {
-        printf("%-20s %-10d\n", p.name, p.score);
+
+    struct Player players[MAX_PLAYERS];
+    int count = 0;
+
+    while (count < MAX_PLAYERS && fscanf(file, "%s %d", players[count].name, &players[count].score) != EOF) {
+        count++;
     }
     fclose(file);
+
+    if (count == 0) {
+        printf("\nLeaderboard is empty.\n");
+        return;
+    }
+
+    for (int i = 0; i < count - 1; i++) {
+        for (int j = 0; j < count - i - 1; j++) {
+            if (players[j].score < players[j + 1].score) {
+                struct Player temp = players[j];
+                players[j] = players[j + 1];
+                players[j + 1] = temp;
+            }
+        }
+    }
+
+    printf("\n--- LEADERBOARD ---\n");
+    printf("%-20s %-10s\n", "Player", "Score");
+    for (int i = 0; i < count; i++) {
+        printf("%-20s %-10d\n", players[i].name, players[i].score);
+    }
 }
 
 void searchPlayer(char searchName[]) {
