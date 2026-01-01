@@ -1,8 +1,8 @@
+#include <ctype.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
-#include <stdbool.h>
 #include <time.h>
 
 #define MAX_WORD_LENGTH 50
@@ -52,7 +52,7 @@ int main() {
         printf("2. View Leaderboard\n");
         printf("3. Search Player\n");
         printf("4. Exit\n");
-        printf("Choose: ");
+        printf("Choose an option: ");
         scanf("%d", &choice);
 
         switch (choice) {
@@ -234,11 +234,10 @@ void displayLeaderboard() {
     fclose(file);
 
     if (count == 0) {
-        printf("\nLeaderboard empty.\n");
+        printf("\nLeaderboard is empty.\n");
         return;
     }
 
-    // Bubble Sort (Descending)
     for (int i = 0; i < count - 1; i++) {
         for (int j = 0; j < count - i - 1; j++) {
             if (players[j].score < players[j + 1].score) {
