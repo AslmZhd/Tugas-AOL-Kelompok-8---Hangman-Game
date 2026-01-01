@@ -107,6 +107,11 @@ void playGame(char playerName[]) {
     struct HangMan wordList[MAX_WORDS];
     int totalWords = loadWords(wordList);
 
+    if (totalWords == 0) {
+        printf("No words available. Please check words.txt\n");
+        return;
+    }
+    
     int index = rand() % totalWords;
     char *secretWord = wordList[index].word;
     char *hint = wordList[index].hint;
