@@ -7,6 +7,10 @@
 
 #define MAX_WORD_LENGTH 50
 #define MAX_TRIES 6
+#define MAX_PLAYERS 100
+#define MAX_WORDS 100
+
+
 
 struct HangMan {
     char word[MAX_WORD_LENGTH];
@@ -18,13 +22,17 @@ struct Player {
     int score;
 };
 
-// Function Prototypes
+
+
+int loadWords(struct HangMan words[]);
+void playGame(char playerName[]);
+void drawHangman(int tries);
+void displayWord(const char guessedWord[]);
 void saveScore(char name[], int score);
 void displayLeaderboard();
 void searchPlayer(char searchName[]);
-void displayWord(const char secretWord[], const char guessedWord[]);
-void drawHangman(int tries);
-void playGame(char playerName[]);
+
+
 
 int main() {
     int choice;
@@ -34,11 +42,11 @@ int main() {
 
     printf("Welcome to Hangman!\n");
     printf("Enter your name: ");
-    scanf("%s", playerName);
+    scanf("%49s", playerName);
 
     do {
         printf("\n============================\n");
-        printf("       HANGMAN MENU\n");
+        printf("        HANGMAN MENU\n");
         printf("============================\n");
         printf("1. Play Game\n");
         printf("2. View Leaderboard\n");
@@ -54,50 +62,70 @@ int main() {
             case 2:
                 displayLeaderboard();
                 break;
-            case 3:
+            case 3: {
+                char searchName[50];
                 printf("Enter player name to search: ");
-                char sName[50];
-                scanf("%s", sName);
-                searchPlayer(sName);
+                scanf("%49s", searchName);
+                searchPlayer(searchName);
                 break;
+            }
             case 4:
-                printf("Thanks for playing, %s! Goodbye.\n", playerName);
+                printf("Thanks for playing, %s!\n", playerName);
                 break;
             default:
-                printf("Invalid choice. Please try again.\n");
+                printf("Invalid choice!\n");
         }
     } while (choice != 4);
 
     return 0;
 }
 
+
+
+int loadWords(struct HangMan words[]) {
+    FILE *file = fopen("words.txt", "r");
+    if (file == NULL) {
+        printf("Error: words.txt not found!\n");
+        exit(1);
+    }
+
+    int count = 0;
+    while (count < MAX_WORDS &&
+           fscanf(file, "%[^|]|%[^\n]\n",
+                  words[count].word,
+                  words[count].hint) == 2) {
+        count++;
+    }
+
+    fclose(file);
+    return count;
+}
+
+
+
 void playGame(char playerName[]) {
-    struct HangMan wordList[] = {
-        {"pantai", "tempat berpasir di dekat laut"},
-        {"miawaug", "Youtuber yang tidak pernah berkata kasar"},
-        {"gajah", "hewan yang memiliki belalai"},
-        {"beruang", "hewan yang memiliki uang"},
-    };
+    struct HangMan wordList[MAX_WORDS];
+    int totalWords = loadWords(wordList);
 
-    int wordIndex = rand() % 4;
-    const char* secretWord = wordList[wordIndex].word;
-    const char* hint = wordList[wordIndex].hint;
+    int index = rand() % totalWords;
+    char *secretWord = wordList[index].word;
+    char *hint = wordList[index].hint;
 
-    int wordLength = strlen(secretWord);
+    int length = strlen(secretWord);
     char guessedWord[MAX_WORD_LENGTH];
-    bool guessedLetters[26] = {false};
+    bool usedLetters[26] = {false};
     int tries = 0;
+    int score = 0;
 
-    // Initialize guessedWord with underscores
-    for (int i = 0; i < wordLength; i++) {
+    for (int i = 0; i < length; i++) {
         guessedWord[i] = '_';
     }
-    guessedWord[wordLength] = '\0';
+    guessedWord[length] = '\0';
 
     printf("\nHint: %s\n", hint);
 
     while (tries < MAX_TRIES) {
-        displayWord(secretWord, guessedWord);
+        displayWord(guessedWord);
         drawHangman(tries);
 
         char guess;
@@ -105,55 +133,61 @@ void playGame(char playerName[]) {
         scanf(" %c", &guess);
         guess = tolower(guess);
 
-        if (guess < 'a' || guess > 'z') {
-            printf("Please enter a valid letter.\n");
+        if (!isalpha(guess)) {
+            printf("Invalid input. Enter a letter.\n");
             continue;
         }
 
-        if (guessedLetters[guess - 'a']) {
-            printf("You've already guessed '%c'. Try again.\n", guess);
+        if (usedLetters[guess - 'a']) {
+            printf("Letter already used.\n");
             continue;
         }
-        guessedLetters[guess - 'a'] = true;
+        usedLetters[guess - 'a'] = true;
 
         bool found = false;
-        for (int i = 0; i < wordLength; i++) {
+        for (int i = 0; i < length; i++) {
             if (secretWord[i] == guess) {
-                found = true;
                 guessedWord[i] = guess;
+                found = true;
             }
         }
 
         if (found) {
-            printf("Good guess!\n");
+            printf("Correct!\n");
+            score += 10;
         } else {
-            printf("Sorry, '%c' is not in the word.\n", guess);
+            printf("Wrong guess!\n");
             tries++;
         }
 
         if (strcmp(secretWord, guessedWord) == 0) {
-            printf("\nCongratulations! The word was: %s\n", secretWord);
-            int finalScore = (MAX_TRIES - tries) * 10;
-            printf("Score for this round: %d\n", finalScore);
-            saveScore(playerName, finalScore);
+            printf("\nYou won! Word: %s\n", secretWord);
+            printf("Score: %d\n", score);
+            saveScore(playerName, score);
             return;
         }
     }
 
     drawHangman(tries);
     printf("\nGame Over! The word was: %s\n", secretWord);
+    printf("Score: %d\n", score);
+    saveScore(playerName, score);
 }
 
-void displayWord(const char secretWord[], const char guessedWord[]) {
-    printf("Word: ");
+
+
+void displayWord(const char guessedWord[]) {
+    printf("\nWord: ");
     for (int i = 0; guessedWord[i] != '\0'; i++) {
         printf("%c ", guessedWord[i]);
     }
     printf("\n");
 }
 
+
+
 void drawHangman(int tries) {
-    const char* stages[] = {
+    const char *stages[] = {
         "  +---+\n  |   |\n      |\n      |\n      |\n      |\n=========",
         "  +---+\n  |   |\n  O   |\n      |\n      |\n      |\n=========",
         "  +---+\n  |   |\n  O   |\n  |   |\n      |\n      |\n=========",
@@ -162,31 +196,39 @@ void drawHangman(int tries) {
         "  +---+\n  |   |\n  O   |\n /|\\  |\n /    |\n      |\n=========",
         "  +---+\n  |   |\n  O   |\n /|\\  |\n / \\  |\n      |\n========="
     };
+
     printf("%s\n", stages[tries]);
 }
 
+
+
 void saveScore(char name[], int score) {
     FILE *file = fopen("leaderboard.txt", "a");
-    if (file == NULL) {
-        printf("Error opening file!\n");
+    if (!file) {
+        printf("Error saving score!\n");
         return;
     }
+
     fprintf(file, "%s %d\n", name, score);
     fclose(file);
-    printf("Score saved to leaderboard!\n");
 }
+
+
 
 void displayLeaderboard() {
     FILE *file = fopen("leaderboard.txt", "r");
-    if (file == NULL) {
-        printf("\nNo scores found yet. Play a game first!\n");
+    if (!file) {
+        printf("\nNo leaderboard data.\n");
         return;
     }
 
     struct Player players[MAX_PLAYERS];
     int count = 0;
 
-    while (count < MAX_PLAYERS && fscanf(file, "%s %d", players[count].name, &players[count].score) != EOF) {
+    while (count < MAX_PLAYERS &&
+           fscanf(file, "%s %d",
+                  players[count].name,
+                  &players[count].score) != EOF) {
         count++;
     }
     fclose(file);
@@ -206,28 +248,36 @@ void displayLeaderboard() {
         }
     }
 
-    printf("\n--- LEADERBOARD ---\n");
-    printf("%-20s %-10s\n", "Player", "Score");
+    printf("\n----- LEADERBOARD -----\n");
+    printf("%-20s %-10s\n", "Name", "Score");
     for (int i = 0; i < count; i++) {
         printf("%-20s %-10d\n", players[i].name, players[i].score);
     }
 }
 
+
+
 void searchPlayer(char searchName[]) {
     FILE *file = fopen("leaderboard.txt", "r");
-    if (file == NULL) {
+    if (!file) {
         printf("Leaderboard empty.\n");
         return;
     }
+
     struct Player p;
     bool found = false;
-    printf("\nResults for '%s':\n", searchName);
+
+    printf("\nSearch results for '%s':\n", searchName);
     while (fscanf(file, "%s %d", p.name, &p.score) != EOF) {
         if (strcmp(p.name, searchName) == 0) {
-            printf("- Score: %d\n", p.score);
+            printf("Score: %d\n", p.score);
             found = true;
         }
     }
-    if (!found) printf("No records found for this player.\n");
+
+    if (!found) {
+        printf("No player found.\n");
+    }
+
     fclose(file);
 }
